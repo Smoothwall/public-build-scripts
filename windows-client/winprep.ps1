@@ -6,7 +6,7 @@
 # Tested on Windows 10 Pro N: Version 1803 (OS Build 17134.1)
 #
 
-### Amend the variables below first, then run from an admin cmd.exe: powershell -NoProfile -InputFormat None -ExecutionPolicy Bypass -F %USERPROFILE%\winprep.ps1
+### Amend the variables below first, then run from an admin cmd.exe: powershell -NoProfile -InputFormat None -ExecutionPolicy Bypass -F %USERPROFILE%\winprep.ps1 -action [ACTION]
 ## To monitor, tail: %USERPROFILE%\winprep.log
 ###
 $vstsPatToken = ""
@@ -14,6 +14,9 @@ $vstsPool = "windows-client"
 $vstsAgentName = "winbuild"
 $vstsAgentUrl = "https://dev.azure.com/smoothwall"
 ###
+
+# Globals
+$global:log = $null
 
 function ReturnCodeCheck {
     param( [String]$alias, [int]$rc, [int]$expected )
@@ -35,7 +38,7 @@ function TimeSync {
     Set-Service -Name W32time -StartupType Automatic
     Restart-Service -Name W32time
     &"w32tm" "/resync" "/force"
-    ReturnCodeCheck "time_set" $?
+    ReturnCodeCheck "time_set" $? 1
 }
 
 function ChocoInstall {
@@ -65,7 +68,7 @@ function ConanInstall {
 function DotNet35Install {
     echo "INFO: Install dotnet3.5..."
     &"choco" "install" "-y" "dotnet3.5"
-    ReturnCodeCheck "choco_install_dotnet3.5" $?
+    ReturnCodeCheck "choco_install_dotnet3.5" $? 1
 }
 
 function ChocoInstallAppsBuildVsts {
@@ -374,7 +377,7 @@ function Usage {
 }
 
 function LogSet {
-    $log = "$Env:USERPROFILE\winprep.log"
+    Set-Variable -Name log -Value "$Env:USERPROFILE\winprep.log" -Scope Global
     echo "INFO: Logging to $log"
 }
 
