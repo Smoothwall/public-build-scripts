@@ -232,6 +232,11 @@ packageParameters="--add Microsoft.VisualStudio.Workload.NativeDesktop --no-incl
     StartProcess "choco_install_apps_local" "choco" "install -y $packageConfigFile"
 }
 
+function GitOptionsSet {
+    echo "INFO: Set default git options"
+    StartProcess "git_options_set_longpaths" "git" "config" "--system" "core.longpaths" "true"
+}
+
 function LlvmVsInstall {
     $llvmExtVsix = "$Env:TEMP\llvm.vsix"
     $llvmVsPath = "$vsPlatformDir\llvm"
@@ -466,6 +471,7 @@ switch ($action)
             ConanInstall
             ChocoInstallAppsBuildLocal
             LlvmVsInstall
+            GitOptionsSet
 
             echo "INFO: Done"
     }
@@ -479,6 +485,7 @@ switch ($action)
             DotNet35Install
             ChocoInstallAppsBuildVsts
             LlvmVsInstall
+            GitOptionsSet
             WinSvcsDisable
             WinDebloatApps
             WinDebloatSysPrep

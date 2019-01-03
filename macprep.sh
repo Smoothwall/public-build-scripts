@@ -16,7 +16,12 @@ vstsAgentUrl="https://dev.azure.com/smoothwall"
 # Globals
 vstsAgentDownloadUrl="https://vstsagentpackage.azureedge.net/agent/2.144.1/vsts-agent-osx-x64-2.144.1.tar.gz"
 vstsAgentHome="$HOME/agent"
-	
+
+vstsAgentRoot=~/agent
+vstsAgentSvcScript=$vstsAgentRoot/svc.sh
+vstsAgentCfgScript=$vstsAgentRoot/config.sh
+vstsAgentEnv=$vstsAgentRoot/env.sh
+
 [ $HOME == "" ] && echo "ERROR: No HOME defined" && exit 1
 
 function ReturnCodeCheck {
@@ -78,7 +83,6 @@ function InstallAppsBuildVsts {
     mkdir "$vstsAgentHome"
     cd "$vstsAgentHome"
     tar -xf "$vstsAgentTar"
-    
 }
 
 function InstallAppsBuildLocal {
@@ -106,13 +110,13 @@ function AzureVmAgentInstall {
 
 function VstsAgentConfig {	
     echo "INFO: Configure VSTS Agent url/pool/agent/home: $vstsAgentUrl - $vstsPool - $vstsAgentName - $vstsAgentHome"
-    ~/agent/config.sh "--unattended" "--url" "$vstsAgentUrl" "--auth" pat "--token" "$vstsPatToken" "--pool" "$vstsPool" "--agent" "$vstsAgentName" "--work" "$vstsAgentHome/agent/_work" "--runAsService" "--acceptTeeEula" "--deploymentGroupTags" "macos,mojave,client"
+    $vstsAgentCfgScript "--unattended" "--url" "$vstsAgentUrl" "--auth" pat "--token" "$vstsPatToken" "--pool" "$vstsPool" "--agent" "$vstsAgentName" "--work" "$vstsAgentHome/agent/_work" "--runAsService" "--acceptTeeEula" "--deploymentGroupTags" "macos,mojave,client"
     ReturnCodeCheck "vstsAgent_config" $?
 }
 
 function VstsAgentRemove {
     echo "INFO: Remove VSTS Agent url/pool/agent: $vstsAgentUrl - $vstsPool - $vstsAgentName"
-    ~/agent/config.sh "remove" "--unattended" "--auth" "pat" "--token" "$vstsPatToken"
+    $vstsAgentCfgScript "remove" "--unattended" "--auth" "pat" "--token" "$vstsPatToken"
     ReturnCodeCheck "vstsAgent_remove" $?
 }
 
@@ -125,6 +129,33 @@ function Usage {
 function LogSet {
     log="~/macprep.log"
     echo "INFO: Logging to $log"
+}
+
+function VstsAgentSvcInstall {
+    echo "INFO: Install service..."
+    cd "$vstsAgentRoot"
+    "$vstsAgentSvcScript" install
+}
+
+function VstsAgentSvcUninstall {
+    echo "INFO: Uninstall service..."
+    cd "$vstsAgentRoot"
+    "$vstsAgentEnv" 
+    "$vstsAgentSvcScript" uninstall
+}
+
+function VstsAgentSvcStart {
+    echo "INFO: Start service..."
+    cd "$vstsAgentRoot"
+    "$vstsAgentEnv" 
+    "$vstsAgentSvcScript" start
+}
+
+function VstsAgentSvcStop {
+    echo "INFO: Stop service..."
+    cd "$vstsAgentRoot"
+    "$vstsAgentEnv" 
+    "$vstsAgentSvcScript" stop
 }
 
 for i in "$@"
@@ -169,8 +200,12 @@ case $action in
     #}
     vsts_config)
             VstsAgentConfig
+            VstsAgentSvcInstall
+            VstsAgentSvcStart
     ;;
     vsts_remove)
+            VstsAgentSvcStop
+            VstsAgentSvcUninstall
             VstsAgentRemove
     ;;
     *)
