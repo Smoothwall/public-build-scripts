@@ -238,7 +238,7 @@ packageParameters="--add Microsoft.VisualStudio.Workload.NativeDesktop --no-incl
 
 function GitOptionsSet {
     echo "INFO: Set default git options"
-    StartProcess "git_options_set_longpaths" "git" "config" "--system" "core.longpaths" "true"
+    StartProcess "git_options_set_longpaths" "git config --system core.longpaths true"
 }
 
 function VsDirGet {
