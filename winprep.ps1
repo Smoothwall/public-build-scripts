@@ -14,7 +14,7 @@ $vstsPatToken = ""
 $vstsPool = "windows-client"
 $vstsAgentName = "winbuild"
 $vstsAgentUrl = "https://dev.azure.com/smoothwall"
-$vsType = "Community" # Visual Studio type: Community or Professional
+
 ###
 
 # Chocolatey package versions (see repo: http://chocolatey.org/packages/)
@@ -127,6 +127,10 @@ function ConanInstall {
 
     echo "INFO: Install conan: $conanInstaller"
     StartProcess "conan_install" "$conanInstaller" "/SILENT"
+    
+    echo "INFO: Enable long paths: 260 -> 32KB"
+    Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem' -name "LongPathsEnabled" -Value 00000001 -Type DWord -force
+    ReturnCodeCheck "conan_install_reg_long_paths_set" $? $LastExitCode
 }
 
 function DotNet35Install {
@@ -229,7 +233,7 @@ packageParameters="--add Microsoft.VisualStudio.Workload.NativeDesktop --no-incl
     $packageConfig | Out-File -FilePath "$packageConfigFile" -Encoding ASCII
 
     echo "INFO: Install apps via chocolatey. This may take some time"
-    StartProcess "choco_install_apps_local" "choco" "install -y $packageConfigFile"
+    StartProcess "choco_install_apps_local" "choco" "install -y $packageConfigFile" 1
 }
 
 function GitOptionsSet {
@@ -237,11 +241,21 @@ function GitOptionsSet {
     StartProcess "git_options_set_longpaths" "git" "config" "--system" "core.longpaths" "true"
 }
 
+function VsDirGet {
+    param( [String]$vsType)
+    return "C:\Program Files (x86)\Microsoft Visual Studio\2017\$vsType"
+}
+
 function LlvmVsInstall {
+    param( [String]$vsType)
+    
+    $vsDir = VsDirGet $vsType
+    
     $llvmExtVsix = "$Env:TEMP\llvm.vsix"
+    $vsPlatformDir = "$vsDir\Common7\IDE\VC\VCTargets\Platforms\x64\PlatformToolsets\"
     $llvmVsPath = "$vsPlatformDir\llvm"
 
-    if ((Test-Path -Path $llvmVsPath) -eq $false) {
+    if ((Test-Path -Path "$llvmVsPath") -eq $false) {
         echo "INFO: Download VS LLVM extension"
         DownloadUri "llvm_vsix_download" "$vsLlvmUrl" "$llvmExtVsix"
     
@@ -252,11 +266,10 @@ function LlvmVsInstall {
     } else {
         echo "INFO: LLVM VS extension appears to already be installed: $llvmVsPath"
     }
-
-    $vsPlatformDir = "C:\Program Files (x86)\Microsoft Visual Studio\2017\$vsType\Common7\IDE\VC\VCTargets\Platforms\x64\PlatformToolsets\"
+    
     $llvmLinkPath = "$vsPlatformDir\LLVM-vs2017"
     
-    if ((Test-Path -Path $llvmLinkPath) -eq $false) {
+    if ((Test-Path -Path "$llvmLinkPath") -eq $false) {
         echo "INFO: Fix Conan/cmake/LLVM/VS compatibility issue..."
         # Conan doesn't currently understand 'llvm' as a VS toolset, so we need to rename
         
@@ -456,6 +469,16 @@ function LogSet {
     echo "INFO: Logging to $log"
 }
 
+function VsCheckVersion {
+  param( [String]$vsType)
+  
+  $vsDir = VsDirGet $vsType
+  if ((Test-Path -Path $vsDir) -eq $false) {
+      echo "ERROR: Please ensure Visual Studio Professional 2017 is installed and registered prior to running this install ($vsDir)"
+      exit(1)
+  }
+}
+
 switch ($action)
 {
     'invoke' {
@@ -467,10 +490,11 @@ switch ($action)
     'build_local_install' {
         
             echo "INFO: Starting prep for local build system..."
+            VsCheckVersion Professional
             ChocoInstall
             ConanInstall
             ChocoInstallAppsBuildLocal
-            LlvmVsInstall
+            LlvmVsInstall Professional
             GitOptionsSet
 
             echo "INFO: Done"
@@ -484,7 +508,7 @@ switch ($action)
             ConanInstall
             DotNet35Install
             ChocoInstallAppsBuildVsts
-            LlvmVsInstall
+            LlvmVsInstall Community
             GitOptionsSet
             WinSvcsDisable
             WinDebloatApps
