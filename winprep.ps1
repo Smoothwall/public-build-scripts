@@ -1,6 +1,7 @@
 param (
     [Parameter(Mandatory=$true)][string]$action,
-    [Parameter(Mandatory=$false)][string]$funcName
+    [Parameter(Mandatory=$false)][string]$funcName,
+    [Parameter(Mandatory=$false)][string]$funcArgs
 )
 #
 # Windows 10 preparation script for Windows VSTS build hosts
@@ -27,7 +28,10 @@ $azurePipelinesAgentVersion = "2.142.1"
 # Others:
 $conanInstallUri = "https://dl.bintray.com/conan/installers/conan-win-64_1_10_1.exe"
 $vsLlvmUrl = "https://llvmextensions.gallerycdn.vsassets.io/extensions/llvmextensions/llvm-toolchain/1.0.340780/1535663999089/llvm.vsix"
+$vsClangPowerToolsUrl = "https://caphyon.gallerycdn.vsassets.io/extensions/caphyon/clangpowertools/4.5.0/1544620269536/ClangPowerTools.vsix"
 $azureAgentUri = "https://go.microsoft.com/fwlink/?LinkID=394789"
+
+$vsixInstaller = "C:\Program Files (x86)\Microsoft Visual Studio\Installer\resources\app\ServiceHub\Services\Microsoft.VisualStudio.Setup.Service\VSIXInstaller.exe"
 
 # Globals
 $global:log = $null
@@ -105,7 +109,7 @@ function ChocoInstall {
 function DownloadUri {
     param( [String]$alias, [String]$uri, [String]$outPath)
 
-    echo "INFO: Download task: '$alias': $uri -> $outPath"
+    echo "INFO: Download task: ${alias}: $uri -> $outPath"
 
     try {
         Invoke-WebRequest -Uri "$uri" -OutFile "$outPath"
@@ -241,18 +245,59 @@ function GitOptionsSet {
     StartProcess "git_options_set_longpaths" "git config --system core.longpaths true"
 }
 
+function VsExtensionInstall {
+    param( [String]$alias, [String]$vsType, [String]$vsExtDirName, [String]$vsExtUrl)
+
+    $vsPlatformDir = VsExtensionDirGet $vsType
+    
+    $extVsix = "$Env:TEMP\$alias.vsix"
+    $extVsPath = "$vsPlatformDir\$vsExtDirName"
+    
+    # TODO this may have to change depending on the type of extension installed
+    if ((Test-Path -Path "$extVsPath") -eq $false) {
+        echo "INFO: Download VS $alias extension"
+        DownloadUri "$alias_vsix_download" "$vsExtUrl" "$extVsix"
+    
+        echo "INFO: Install VS $alias extension..."
+
+        StartProcess "$alias_vsix_install" "$vsixInstaller" "/q $extVsix"
+    } else {
+        echo "INFO: $alias VS extension appears to already be installed: $extVsPath"
+    }
+}
+
 function VsDirGet {
     param( [String]$vsType)
     return "C:\Program Files (x86)\Microsoft Visual Studio\2017\$vsType"
 }
 
-function LlvmVsInstall {
+function VsExtensionDirGet {
     param( [String]$vsType)
     
     $vsDir = VsDirGet $vsType
+    $vsPlatformDir = "$vsDir\Common7\IDE\VC\VCTargets\Platforms\x64\PlatformToolsets\"
+    
+    return $vsPlatformDir
+}
+
+function ClangPowerToolsInstall {
+   param([String]$vsType)
+
+   if ( "$vsType" -eq '') {
+      echo "ERROR: No vsType specified"
+      exit(1);
+   }
+   $vsExtDirName = "TODO" # This just causes it to re-install everytime. TODO: Needs addressing.
+   
+   VsExtensionInstall "clang_power_tools" "$vsType" "$vsExtDirName" "$vsClangPowerToolsUrl"
+}
+
+function LlvmVsInstall {
+    param( [String]$vsType)
+    
+    $vsPlatformDir = VsExtensionDirGet $vsType
     
     $llvmExtVsix = "$Env:TEMP\llvm.vsix"
-    $vsPlatformDir = "$vsDir\Common7\IDE\VC\VCTargets\Platforms\x64\PlatformToolsets\"
     $llvmVsPath = "$vsPlatformDir\llvm"
 
     if ((Test-Path -Path "$llvmVsPath") -eq $false) {
@@ -260,7 +305,6 @@ function LlvmVsInstall {
         DownloadUri "llvm_vsix_download" "$vsLlvmUrl" "$llvmExtVsix"
     
         echo "INFO: Install VS LLVM extension..."
-        $vsixInstaller = "C:\Program Files (x86)\Microsoft Visual Studio\Installer\resources\app\ServiceHub\Services\Microsoft.VisualStudio.Setup.Service\VSIXInstaller.exe"
 
         StartProcess "llvm_vsix_install" "$vsixInstaller" "/q $llvmExtVsix"
     } else {
@@ -482,7 +526,7 @@ function VsCheckVersion {
 switch ($action)
 {
     'invoke' {
-        &$funcName
+        &$funcName $funcArgs
     }
     'timesync' { # TODO REMOVE
         RunProc
