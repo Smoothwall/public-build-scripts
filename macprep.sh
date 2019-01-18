@@ -62,6 +62,22 @@ function ConanInstall {
     ReturnCodeCheck "conan_install" $? 0
 }
 
+function InstallVstsAgent {
+    vstsAgentTar="~/vsts-agent.tar.gz"
+    curl "$vstsAgentDownloadUrl" -o "$vstsAgentTar"
+    ReturnCodeCheck "vsts_agent_download" $? 0
+    
+    mkdir "$vstsAgentHome"
+    cd "$vstsAgentHome"
+    tar -xf "$vstsAgentTar"
+}
+
+function InstallBashNewer {
+    echo "INFO: Install GNU bash >=4"
+    brew install bash
+    ReturnCodeCheck "cmake_install" $? 0
+}
+
 function InstallAppsBuildVsts {
     brew update
     echo "INFO: Install xcode command line tools"
@@ -76,13 +92,8 @@ function InstallAppsBuildVsts {
     brew install llvm
     ReturnCodeCheck "llvm_install" $? 0
     
-    vstsAgentTar="~/vsts-agent.tar.gz"
-    curl "$vstsAgentDownloadUrl" -o "$vstsAgentTar"
-    ReturnCodeCheck "vsts_agent_download" $? 0
-    
-    mkdir "$vstsAgentHome"
-    cd "$vstsAgentHome"
-    tar -xf "$vstsAgentTar"
+    InstallBashNewer
+    InstallVstsAgent
 }
 
 function InstallAppsBuildLocal {
