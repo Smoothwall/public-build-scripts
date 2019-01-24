@@ -9,7 +9,7 @@
 ###
 vstsPatToken=""
 vstsPool="MacOS-Clients"
-vstsAgentName="macbuild"
+vstsAgentName=""
 vstsAgentUrl="https://dev.azure.com/smoothwall"
 ###
 
@@ -24,7 +24,8 @@ vstsAgentEnv=$vstsAgentRoot/env.sh
 
 bashProfile=~/.bash_profile
 
-[ $HOME == "" ] && echo "ERROR: No HOME defined" && exit 1
+[ "$HOME" == "" ] && echo "ERROR: No HOME defined" && exit 1
+[ "$vstsAgentName" == "" ] && vstsAgentName=`hostname -s`
 
 function ReturnCodeCheck {
 	 alias=$1
@@ -67,28 +68,41 @@ function BashProfileAdd {
 }
 
 function BrewInstall {
-	 brewInstallDir=~/homebrew
+	brewInstallDir=~/homebrew
+	
+	echo "INFO: Install homebrew in to local dir: $brewInstallDir"
+	#ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
 	 
-	 echo "INFO: Install homebrew in to local dir: $brewInstallDir"
-	 #ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+	if [ ! -d "$brewInstallDir" ]
+	then
+		\mkdir "$brewInstallDir" 
+		ReturnCodeCheck "brew_mkdir" $?
+	else
+		echo "Q: Homebrew already installed in $brewInstallDir, continue? (y/n)"
+		read ANS
+		[ "$ANS" != "y" ] && echo "No..." && exit 1
+	fi
+	cd "$brewInstallDir"
+	
+	curl -L https://github.com/Homebrew/brew/tarball/master | tar xz --strip 1 -C "$brewInstallDir"
+	ReturnCodeCheck "brew_download_untar" $?
 	 
-	 \mkdir "$brewInstallDir" 
-	 ReturnCodeCheck "brew_mkdir" $?
-	 cd "$brewInstallDir"
-	 
-	 curl -L https://github.com/Homebrew/brew/tarball/master | tar xz --strip 1 -C "$brewInstallDir"
-	 ReturnCodeCheck "brew_download_untar" $?
-	 
-	 BashProfileAdd 'PATH=$PATH:~/homebrew/bin'
+	BashProfileAdd 'PATH=~/homebrew/bin:$PATH'
 	 . "$bashProfile" # Source updated profile
 		 
-	 #ReturnCodeCheck "brew_install" $?
-	 #brew doctor
-	 #ReturnCodeCheck "brew_doctor" $?
+	#ReturnCodeCheck "brew_install" $?
+	#brew doctor
+	#ReturnCodeCheck "brew_doctor" $?
 	 
-	 echo "INFO: Brew update"
-	 brew update
-	 ReturnCodeCheck "brew_update" $?
+	echo "INFO: Brew update"
+	brew update
+	ReturnCodeCheck "brew_update" $?
+}
+
+function BrewAddBashPath {
+	 pkgName="$1"
+	 
+	 BashProfileAdd "PATH=$(brew --prefix $pkgName)/bin:\$PATH"
 }
 
 function ConanInstall {
@@ -96,11 +110,14 @@ function ConanInstall {
 	 brew update
 	 brew install conan
 	 ReturnCodeCheck "conan_install" $? 0
+	 
+	 BrewAddBashPath conan
+	 ReturnCodeCheck "conan_path_add" $?
 }
 
 function InstallVstsAgent {
 	 vstsAgentTar="~/vsts-agent.tar.gz"
-	 curl "$vstsAgentDownloadUrl" -o "$vstsAgentTar"
+	 curl "$vstsAgentDownloadUrl" -o $vstsAgentTar
 	 ReturnCodeCheck "vsts_agent_download" $? 0
 	 
 	 mkdir "$vstsAgentHome"
@@ -112,6 +129,9 @@ function InstallBashNewer {
 	 echo "INFO: Install GNU bash >=4"
 	 brew install bash
 	 ReturnCodeCheck "cmake_install" $? 0
+	 
+	 BrewAddBashPath bash
+	 ReturnCodeCheck "bash_path_add" $?
 }
 
 function InstallXcodeCmdTools {
@@ -131,9 +151,15 @@ function InstallAppsBuildVsts {
 	 brew install cmake
 	 ReturnCodeCheck "cmake_install" $? 0
 	 
+	 BrewAddBashPath cmake
+	 ReturnCodeCheck "cmake_path_add" $?
+	 
 	 echo "INFO: Install llvm"
 	 brew install llvm
 	 ReturnCodeCheck "llvm_install" $? 0
+	 
+	 BrewAddBashPath llvm
+	 ReturnCodeCheck "llvm_path_add" $?
 	 
 	 InstallBashNewer
 	 InstallVstsAgent
@@ -146,9 +172,15 @@ function InstallAppsBuildLocal {
 	 brew install cmake
 	 ReturnCodeCheck "cmake_install" $? 0
 	 
+	 BrewAddBashPath cmake
+	 ReturnCodeCheck "cmake_path_add" $?
+	 
 	 echo "INFO: Install llvm"
 	 brew install llvm
 	 ReturnCodeCheck "llvm_install" $? 0
+	 
+	 BrewAddBashPath llvm
+	 ReturnCodeCheck "llvm_path_add" $?
 	 
 	 InstallBashNewer
 }
@@ -211,6 +243,10 @@ function VstsAgentSvcStop {
 	 "$vstsAgentSvcScript" stop
 }
 
+function BashProfileSource {
+	. "$bashProfile"
+}
+
 for i in "$@"
 do
 	 case $i in
@@ -237,6 +273,7 @@ case $action in
 				BrewInstall
 				ConanInstall
 				InstallAppsBuildLocal
+				BashProfileSource
 	 ;;
 	 #build_vsts_install)
 	 #		LogSet
@@ -246,7 +283,7 @@ case $action in
 	 #			 ConanInstall
 	 #			 InstallAppsBuildVsts
 	 #			 OsPrepForAzure
-	 #			 AzureVmAgentInstall
+	 #			 #AzureVmAgentInstall
 	 #			 VstsAgentConfig
 	 #
 	 #			 echo "INFO: Done"
