@@ -32,6 +32,7 @@ $vsClangPowerToolsUrl = "https://caphyon.gallerycdn.vsassets.io/extensions/caphy
 $azureAgentUri = "https://go.microsoft.com/fwlink/?LinkID=394789"
 
 $vsixInstaller = "C:\Program Files (x86)\Microsoft Visual Studio\Installer\resources\app\ServiceHub\Services\Microsoft.VisualStudio.Setup.Service\VSIXInstaller.exe"
+$vsLocalType="Professional"
 
 # Globals
 $global:log = $null
@@ -167,7 +168,8 @@ packageParameters="--add Microsoft.VisualStudio.Workload.NativeDesktop --no-incl
 --add Microsoft.VisualStudio.Component.Debugger.JustInTime
 --add Microsoft.VisualStudio.Component.NuGet
 --add Microsoft.VisualStudio.Component.Static.Analysis.Tools
---add Microsoft.VisualStudio.Component.VC.ATL Visual
+--add Microsoft.VisualStudio.Component.VC.ATL
+--add Microsoft.VisualStudio.Component.VC.ATLMFC
 --add Microsoft.VisualStudio.Component.VC.CMake.Project
 --add Microsoft.VisualStudio.Component.VC.DiagnosticTools
 --add Microsoft.VisualStudio.Component.VC.TestAdapterForBoostTest
@@ -217,7 +219,8 @@ packageParameters="--add Microsoft.VisualStudio.Workload.NativeDesktop --no-incl
 --add Microsoft.VisualStudio.Component.Debugger.JustInTime
 --add Microsoft.VisualStudio.Component.NuGet
 --add Microsoft.VisualStudio.Component.Static.Analysis.Tools
---add Microsoft.VisualStudio.Component.VC.ATL Visual
+--add Microsoft.VisualStudio.Component.VC.ATL
+--add Microsoft.VisualStudio.Component.VC.ATLMFC
 --add Microsoft.VisualStudio.Component.VC.CMake.Project
 --add Microsoft.VisualStudio.Component.VC.DiagnosticTools
 --add Microsoft.VisualStudio.Component.VC.TestAdapterForBoostTest
@@ -523,7 +526,7 @@ function VsCheckVersion {
   
   $vsDir = VsDirGet $vsType
   if ((Test-Path -Path $vsDir) -eq $false) {
-		echo "ERROR: Please ensure Visual Studio Professional 2017 is installed and registered prior to running this install ($vsDir)"
+		echo "ERROR: Please ensure Visual Studio $vsLocalType 2017 is installed and registered prior to running this install ($vsDir)"
 		echo 'ERROR: When installing Visual Studio, be sure to select the "Desktop development with C++" workload to install'
 		exit(1)
   }
@@ -540,11 +543,11 @@ switch ($action)
 	 'build_local_install' {
 		  
 				echo "INFO: Starting prep for local build system..."
-				VsCheckVersion Professional
+				VsCheckVersion $vsLocalType
 				ChocoInstall
 				ConanInstall
 				ChocoInstallAppsBuildLocal
-				LlvmVsInstall Professional
+				LlvmVsInstall $vsLocalType
 				GitOptionsSet
 
 				echo "INFO: You may need to restart your shell for PATHs to take effect"
