@@ -3,6 +3,8 @@ param (
 	 [Parameter(Mandatory=$false)][string]$funcName,
 	 [Parameter(Mandatory=$false)][string]$funcArgs
 )
+
+$scriptVersion = "1.0.1"
 #
 # Windows 10 preparation script for Windows VSTS build hosts
 # Tested on Windows 10 Pro N: Version 1803 (OS Build 17134.1)
@@ -24,15 +26,18 @@ $vsWorkloadNativedesktopVersion = "1.2.1"
 $cmakeVersion = "3.13.1"
 $llvmVersion = "7.0.0"
 $azurePipelinesAgentVersion = "2.142.1"
+$conanVersion = "1_12_0"
+$win10sdkVersion = "10.1.17763.1"
 
 # Others:
-$conanInstallUri = "https://dl.bintray.com/conan/installers/conan-win-64_1_10_1.exe"
+$conanInstallUri = "https://dl.bintray.com/conan/installers/conan-win-64_$conanVersion.exe"
 $vsLlvmUrl = "https://llvmextensions.gallerycdn.vsassets.io/extensions/llvmextensions/llvm-toolchain/1.0.340780/1535663999089/llvm.vsix"
 $vsClangPowerToolsUrl = "https://caphyon.gallerycdn.vsassets.io/extensions/caphyon/clangpowertools/4.5.0/1544620269536/ClangPowerTools.vsix"
 $azureAgentUri = "https://go.microsoft.com/fwlink/?LinkID=394789"
 
 $vsixInstaller = "C:\Program Files (x86)\Microsoft Visual Studio\Installer\resources\app\ServiceHub\Services\Microsoft.VisualStudio.Setup.Service\VSIXInstaller.exe"
-$vsLocalType="Professional"
+# Version of Visual Studio to validate when Action=build_local_install. Optionally change this to "Community".
+$vsLocalType = "Professional"
 
 # Globals
 $global:log = $null
@@ -157,26 +162,27 @@ $packageConfig = @"
 
 <package id="visualstudio2017community" version="$vsVersion" />
 <package id="visualstudio2017-workload-nativedesktop" version="$vsWorkloadNativedesktopVersion" 
-packageParameters="--add Microsoft.VisualStudio.Workload.NativeDesktop --no-includeRecommended --no-includeOptional
---add Microsoft.VisualStudio.Component.VC.ClangC2
---add Microsoft.Component.MSBuild MSBuild
---add Microsoft.VisualStudio.Component.Roslyn.Compiler
---add Microsoft.VisualStudio.Component.TextTemplating
---add Microsoft.VisualStudio.Component.VC.CoreIde
---add Microsoft.VisualStudio.Component.VC.Redist.14.Latest
---add Microsoft.VisualStudio.ComponentGroup.NativeDesktop.Core
---add Microsoft.VisualStudio.Component.Debugger.JustInTime
---add Microsoft.VisualStudio.Component.NuGet
---add Microsoft.VisualStudio.Component.Static.Analysis.Tools
---add Microsoft.VisualStudio.Component.VC.ATL
---add Microsoft.VisualStudio.Component.VC.ATLMFC
---add Microsoft.VisualStudio.Component.VC.CMake.Project
---add Microsoft.VisualStudio.Component.VC.DiagnosticTools
---add Microsoft.VisualStudio.Component.VC.TestAdapterForBoostTest
---add Microsoft.VisualStudio.Component.VC.TestAdapterForGoogleTest
---add Microsoft.VisualStudio.Component.VC.Tools.x86.x64
---add Microsoft.VisualStudio.Component.Windows10SDK.17134 
+packageParameters="--no-includeRecommended --no-includeOptional --add Microsoft.VisualStudio.Workload.NativeDesktop
+ Microsoft.VisualStudio.Component.VC.ClangC2
+ Microsoft.Component.MSBuild
+ Microsoft.VisualStudio.Component.Roslyn.Compiler
+ Microsoft.VisualStudio.Component.TextTemplating
+ Microsoft.VisualStudio.Component.VC.CoreIde
+ Microsoft.VisualStudio.Component.VC.Redist.14.Latest
+ Microsoft.VisualStudio.ComponentGroup.NativeDesktop.Core
+ Microsoft.VisualStudio.Component.Debugger.JustInTime
+ Microsoft.VisualStudio.Component.NuGet
+ Microsoft.VisualStudio.Component.Static.Analysis.Tools
+ Microsoft.VisualStudio.Component.VC.ATL
+ Microsoft.VisualStudio.Component.VC.ATLMFC
+ Microsoft.VisualStudio.Component.VC.CMake.Project
+ Microsoft.VisualStudio.Component.VC.DiagnosticTools
+ Microsoft.VisualStudio.Component.VC.TestAdapterForBoostTest
+ Microsoft.VisualStudio.Component.VC.TestAdapterForGoogleTest
+ Microsoft.VisualStudio.Component.VC.Tools.x86.x64
 " />
+
+<package id="windows-sdk-10.1" version="$win10sdkVersion" />
 <package id="llvm" version="$llvmVersion" />
 <package id="cmake" version="$cmakeVersion" installArguments="ADD_CMAKE_TO_PATH=System" />
 <package id="git.install" />
@@ -189,7 +195,7 @@ packageParameters="--add Microsoft.VisualStudio.Workload.NativeDesktop --no-incl
 <package id="conemu" /> <!-- Enhanced cmd.exe CLI -->
 </packages>
 "@
-	 $packageConfigFile = "$Env:USERPROFILE\package-build-vsts.config"
+	 $packageConfigFile = "$Env:TEMP\package-build-vsts.config"
 
 	 echo "INFO: Write chocolatey packages config: $packageConfigFile"
 	 $packageConfig | Out-File -FilePath "$packageConfigFile" -Encoding ASCII
@@ -208,26 +214,27 @@ $packageConfig = @"
 <!-- <package id="visualstudio2017community" version="$vsVersion" /> -->
 
 <package id="visualstudio2017-workload-nativedesktop" version="$vsWorkloadNativedesktopVersion" 
-packageParameters="--add Microsoft.VisualStudio.Workload.NativeDesktop --no-includeRecommended --no-includeOptional
---add Microsoft.VisualStudio.Component.VC.ClangC2
---add Microsoft.Component.MSBuild MSBuild
---add Microsoft.VisualStudio.Component.Roslyn.Compiler
---add Microsoft.VisualStudio.Component.TextTemplating
---add Microsoft.VisualStudio.Component.VC.CoreIde
---add Microsoft.VisualStudio.Component.VC.Redist.14.Latest
---add Microsoft.VisualStudio.ComponentGroup.NativeDesktop.Core
---add Microsoft.VisualStudio.Component.Debugger.JustInTime
---add Microsoft.VisualStudio.Component.NuGet
---add Microsoft.VisualStudio.Component.Static.Analysis.Tools
---add Microsoft.VisualStudio.Component.VC.ATL
---add Microsoft.VisualStudio.Component.VC.ATLMFC
---add Microsoft.VisualStudio.Component.VC.CMake.Project
---add Microsoft.VisualStudio.Component.VC.DiagnosticTools
---add Microsoft.VisualStudio.Component.VC.TestAdapterForBoostTest
---add Microsoft.VisualStudio.Component.VC.TestAdapterForGoogleTest
---add Microsoft.VisualStudio.Component.VC.Tools.x86.x64
---add Microsoft.VisualStudio.Component.Windows10SDK.17134 
+packageParameters="--no-includeRecommended --no-includeOptional --add Microsoft.VisualStudio.Workload.NativeDesktop
+ Microsoft.VisualStudio.Component.VC.ClangC2
+ Microsoft.Component.MSBuild
+ Microsoft.VisualStudio.Component.Roslyn.Compiler
+ Microsoft.VisualStudio.Component.TextTemplating
+ Microsoft.VisualStudio.Component.VC.CoreIde
+ Microsoft.VisualStudio.Component.VC.Redist.14.Latest
+ Microsoft.VisualStudio.ComponentGroup.NativeDesktop.Core
+ Microsoft.VisualStudio.Component.Debugger.JustInTime
+ Microsoft.VisualStudio.Component.NuGet
+ Microsoft.VisualStudio.Component.Static.Analysis.Tools
+ Microsoft.VisualStudio.Component.VC.ATL
+ Microsoft.VisualStudio.Component.VC.ATLMFC
+ Microsoft.VisualStudio.Component.VC.CMake.Project
+ Microsoft.VisualStudio.Component.VC.DiagnosticTools
+ Microsoft.VisualStudio.Component.VC.TestAdapterForBoostTest
+ Microsoft.VisualStudio.Component.VC.TestAdapterForGoogleTest
+ Microsoft.VisualStudio.Component.VC.Tools.x86.x64
 " />
+
+<package id="windows-sdk-10.1" version="$win10sdkVersion" />
 <package id="llvm" version="$llvmVersion" />
 <package id="cmake" version="$cmakeVersion" installArguments="ADD_CMAKE_TO_PATH=System" />
 <package id="git.install" />
@@ -238,6 +245,7 @@ packageParameters="--add Microsoft.VisualStudio.Workload.NativeDesktop --no-incl
 <package id="conemu" /> <!-- Enhanced cmd.exe CLI -->
 </packages>
 "@
+
 	 $packageConfigFile = "$Env:TEMP\package-build-local.config"
 
 	 echo "INFO: Write chocolatey packages config: $packageConfigFile"
