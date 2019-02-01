@@ -190,9 +190,10 @@ packageParameters="--no-includeRecommended --no-includeOptional --add Microsoft.
 
 <package id="azure-pipelines-agent" version="$azurePipelinesAgentVersion" />
 
-<package id="notepadplusplus.install" />
 <package id="sysinternals" /> <!-- v.useful debug tools -->
 <package id="conemu" /> <!-- Enhanced cmd.exe CLI -->
+<package id="notepadplusplus.install" />
+<package id="7zip" />
 </packages>
 "@
 	 $packageConfigFile = "$Env:TEMP\package-build-vsts.config"
@@ -240,9 +241,11 @@ packageParameters="--no-includeRecommended --no-includeOptional --add Microsoft.
 <package id="git.install" />
 <package id="wixtoolset" />
 
-<package id="notepadplusplus.install" />
 <package id="sysinternals" /> <!-- v.useful debug tools -->
 <package id="conemu" /> <!-- Enhanced cmd.exe CLI -->
+<package id="notepadplusplus.install" />
+<package id="7zip" />
+<package id="mobaxterm" />
 </packages>
 "@
 
