@@ -116,7 +116,7 @@ function ConanInstall {
 }
 
 function InstallVstsAgent {
-	 vstsAgentTar="~/vsts-agent.tar.gz"
+	 vstsAgentTar=~/vsts-agent.tar.gz
 	 curl "$vstsAgentDownloadUrl" -o $vstsAgentTar
 	 ReturnCodeCheck "vsts_agent_download" $? 0
 	 
@@ -207,7 +207,7 @@ function VstsAgentRemove {
 
 function Usage {
 	 echo "INFO: Amend the variables at the top of the script, then run from a terminal:" 
-	 echo "INFO:	sudo ~/macprep.sh -Action ACTION"
+	 echo "INFO:	sudo ~/macprep.sh -Action=ACTION"
 	 echo "INFO: Where ACTION is one of: build_local_install|vsts_config|vsts_remove|invoke"
 }
 
