@@ -147,42 +147,45 @@ function InstallXcodeCmdTools {
 function InstallAppsBuildVsts {
 	 brew update
 	 
-	 echo "INFO: Install cmake"
-	 brew install cmake
-	 ReturnCodeCheck "cmake_install" $? 0
-	 
-	 BrewAddBashPath cmake
-	 ReturnCodeCheck "cmake_path_add" $?
-	 
-	 echo "INFO: Install llvm"
-	 brew install llvm
-	 ReturnCodeCheck "llvm_install" $? 0
-	 
-	 BrewAddBashPath llvm
-	 ReturnCodeCheck "llvm_path_add" $?
-	 
+	 InstallCmake
+	 InstallLlvm
 	 InstallBashNewer
+	 InstallAutoTools
+	 
 	 InstallVstsAgent
 }
 
 function InstallAppsBuildLocal {
 	 brew update
 		 
+	 InstallCmake
+	 InstallLlvm
+	 InstallBashNewer
+	 InstallAutoTools
+}
+
+function InstallCmake {
 	 echo "INFO: Install cmake"
 	 brew install cmake
 	 ReturnCodeCheck "cmake_install" $? 0
 	 
 	 BrewAddBashPath cmake
 	 ReturnCodeCheck "cmake_path_add" $?
-	 
+}
+
+function InstallLlvm {
 	 echo "INFO: Install llvm"
 	 brew install llvm
-	 ReturnCodeCheck "llvm_install" $? 0
+	 ReturnCodeCheck "brew_install_llvm" $? 0
 	 
 	 BrewAddBashPath llvm
 	 ReturnCodeCheck "llvm_path_add" $?
-	 
-	 InstallBashNewer
+}
+
+function InstallAutoTools {
+	 echo "INFO: Install: automake autoconf libtool"
+	 brew install automake autoconf libtool
+	 ReturnCodeCheck "brew_install_automake_autoconf" $? 0
 }
 
 function OsPrepForAzure {
