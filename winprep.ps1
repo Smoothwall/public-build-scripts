@@ -6,7 +6,7 @@ param (
 
 $scriptVersion = "1.0.1"
 #
-# Windows 10 preparation script for Windows VSTS build hosts
+# Windows 10 preparation script for Windows VSTS local and self-hosted build environment setup.
 # Tested on Windows 10 Pro N: Version 1803 (OS Build 17134.1)
 #
 
@@ -18,22 +18,24 @@ $vstsPool = "windows-client"
 $vstsAgentName = ""
 $vstsAgentUrl = "https://dev.azure.com/smoothwall"
 
-###
+## Package versions
+# These are locked to a particular version, with the exception of the Azure VM agent (used for build agent hosts only).
 
-# Chocolatey package versions (see repo: http://chocolatey.org/packages/)
-$vsVersion = "15.9.2.0"
-$vsWorkloadNativedesktopVersion = "1.2.1"
-$cmakeVersion = "3.13.1"
-$llvmVersion = "7.0.0"
-$azurePipelinesAgentVersion = "2.142.1"
-$conanVersion = "1_12_0"
-$win10sdkVersion = "10.1.17763.1"
+# Chocolatey package versions (see repo: http://chocolatey.org/packages/). Note: We only use packages maintained by the respective software authors.
+$vsVersion = "15.9.2.0" 						# https://chocolatey.org/packages/VisualStudio2017Community
+$vsWorkloadNativedesktopVersion = "1.2.1" 		# https://chocolatey.org/packages/visualstudio2017-workload-nativedesktop
+$cmakeVersion = "3.13.1"						# https://chocolatey.org/packages/cmake
+$llvmVersion = "7.0.0"							# Not actively used by us. https://chocolatey.org/packages/llvm
+$azurePipelinesAgentVersion = "2.142.1"			# https://chocolatey.org/packages/azure-pipelines-agent
+$win10sdkVersion = "10.1.17763.1"				# https://chocolatey.org/packages/windows-sdk-10.1
+
+$conanVersion = "1_12_0"						# https://conan.io/downloads.html
 
 # Others:
-$conanInstallUri = "https://dl.bintray.com/conan/installers/conan-win-64_$conanVersion.exe"
-$vsLlvmUrl = "https://llvmextensions.gallerycdn.vsassets.io/extensions/llvmextensions/llvm-toolchain/1.0.340780/1535663999089/llvm.vsix"
-$vsClangPowerToolsUrl = "https://caphyon.gallerycdn.vsassets.io/extensions/caphyon/clangpowertools/4.5.0/1544620269536/ClangPowerTools.vsix"
-$azureAgentUri = "https://go.microsoft.com/fwlink/?LinkID=394789"
+$conanInstallUri = "https://dl.bintray.com/conan/installers/conan-win-64_$conanVersion.exe" 													
+$vsLlvmUrl = "https://llvmextensions.gallerycdn.vsassets.io/extensions/llvmextensions/llvm-toolchain/1.0.340780/1535663999089/llvm.vsix" 		# We dont currently use LLVM. https://marketplace.visualstudio.com/items?itemName=LLVMExtensions.llvm-toolchain 
+$vsClangPowerToolsUrl = "https://caphyon.gallerycdn.vsassets.io/extensions/caphyon/clangpowertools/4.5.0/1544620269536/ClangPowerTools.vsix" 	# See: https://marketplace.visualstudio.com/items?itemName=caphyon.ClangPowerTools
+$azureAgentUri = "https://go.microsoft.com/fwlink/?LinkID=394789" # This always pulls the latest, see: https://docs.microsoft.com/en-us/azure/virtual-machines/extensions/agent-windows
 
 $vsixInstaller = "C:\Program Files (x86)\Microsoft Visual Studio\Installer\resources\app\ServiceHub\Services\Microsoft.VisualStudio.Setup.Service\VSIXInstaller.exe"
 # Version of Visual Studio to validate when Action=build_local_install. Optionally change this to "Community".
