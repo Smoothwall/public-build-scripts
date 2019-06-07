@@ -4,10 +4,10 @@ param (
 	[Parameter(Mandatory=$false)][string]$funcArgs
 )
 
-$scriptVersion = "1.0.1"
+$scriptVersion = "1.0.3"
 #
 # Windows 10 preparation script for Windows VSTS local and self-hosted build environment setup.
-# Tested on Windows 10 Pro N: Version 1803 (OS Build 17134.1)
+# Tested on Windows 10 Pro N: Version 1803 (OS Build 17134.1) and Windows Server 2016
 #
 
 ### Amend the variables below first, then run from an admin cmd.exe: powershell -NoProfile -InputFormat None -ExecutionPolicy Bypass -F %USERPROFILE%\winprep.ps1 -action [ACTION]
@@ -22,22 +22,23 @@ $vstsAgentUrl = "https://dev.azure.com/smoothwall"
 # These are locked to a particular version, with the exception of the Azure VM agent (used for build agent hosts only).
 
 # Chocolatey package versions (see repo: http://chocolatey.org/packages/). Note: We only use packages maintained by the respective software authors.
-$vsVersion = "15.9.2.0" 						# https://chocolatey.org/packages/VisualStudio2017Community
-$vsWorkloadNativedesktopVersion = "1.2.1" 		# https://chocolatey.org/packages/visualstudio2017-workload-nativedesktop
-$cmakeVersion = "3.13.1"						# https://chocolatey.org/packages/cmake
-$llvmVersion = "7.0.0"							# Not actively used by us. https://chocolatey.org/packages/llvm
-$azurePipelinesAgentVersion = "2.142.1"			# https://chocolatey.org/packages/azure-pipelines-agent
+
+$vsVersion = "15.9.2.0"								# https://chocolatey.org/packages/VisualStudio2017Community
+$vsWorkloadNativedesktopVersion = "1.2.1"		# https://chocolatey.org/packages/visualstudio2017-workload-nativedesktop
+$cmakeVersion = "3.14.5"							# https://chocolatey.org/packages/cmake
+$llvmVersion = "7.0.0"								# Not actively used by us. https://chocolatey.org/packages/llvm
+$azurePipelinesAgentVersion = "2.142.1"		# https://chocolatey.org/packages/azure-pipelines-agent
 $win10sdkVersion = "10.1.17763.1"				# https://chocolatey.org/packages/windows-sdk-10.1
 
-$conanVersion = "1_12_0"						# https://conan.io/downloads.html
+$conanVersion = "1_12_0"							# https://conan.io/downloads.html
 
 # Others:
-$conanInstallUri = "https://dl.bintray.com/conan/installers/conan-win-64_$conanVersion.exe" 													
-$vsLlvmUrl = "https://llvmextensions.gallerycdn.vsassets.io/extensions/llvmextensions/llvm-toolchain/1.0.340780/1535663999089/llvm.vsix" 		# We dont currently use LLVM. https://marketplace.visualstudio.com/items?itemName=LLVMExtensions.llvm-toolchain 
-$vsClangPowerToolsUrl = "https://caphyon.gallerycdn.vsassets.io/extensions/caphyon/clangpowertools/4.5.0/1544620269536/ClangPowerTools.vsix" 	# See: https://marketplace.visualstudio.com/items?itemName=caphyon.ClangPowerTools
+$conanInstallUri = "https://dl.bintray.com/conan/installers/conan-win-64_$conanVersion.exe"
+$vsLlvmUrl = "https://llvmextensions.gallerycdn.vsassets.io/extensions/llvmextensions/llvm-toolchain/1.0.340780/1535663999089/llvm.vsix" # We dont currently use LLVM. https://marketplace.visualstudio.com/items?itemName=LLVMExtensions.llvm-toolchain 
+$vsClangPowerToolsUrl = "https://marketplace.visualstudio.com/_apis/public/gallery/publishers/caphyon/vsextensions/ClangPowerTools/4.10.5/vspackage"
 $azureAgentUri = "https://go.microsoft.com/fwlink/?LinkID=394789" # This always pulls the latest, see: https://docs.microsoft.com/en-us/azure/virtual-machines/extensions/agent-windows
 
-$vsixInstaller = "C:\Program Files (x86)\Microsoft Visual Studio\Installer\resources\app\ServiceHub\Services\Microsoft.VisualStudio.Setup.Service\VSIXInstaller.exe"
+$vsixInstaller = "C:\Program Files (x86)\Microsoft Visual Studio\Installer\resources\app\ServiceHub\Services\Microsoft.VisualStudio.Setup.Service\VSIXInstaller.exe" # See: https://marketplace.visualstudio.com/items?itemName=caphyon.ClangPowerTools
 # Version of Visual Studio to validate when Action=build_local_install. Optionally change this to "Community".
 $vsLocalType = "Professional"
 
@@ -75,6 +76,8 @@ function ScriptDownloadRun {
 		 $script = $wc.DownloadString($uri)
 	} catch {
 		 $rc = $_.Exception.Response.StatusCode.value__
+		 echo "ERROR: $alias - $rc in GET: $uri"
+		 exit($rc)
 	}
 	ReturnCodeCheck "$alias" $? $LastExitCode
 
@@ -166,24 +169,24 @@ $packageConfig = @"
 
 <package id="visualstudio2017community" version="$vsVersion" />
 <package id="visualstudio2017-workload-nativedesktop" version="$vsWorkloadNativedesktopVersion" 
-packageParameters="--no-includeRecommended --no-includeOptional --add Microsoft.VisualStudio.Workload.NativeDesktop
- Microsoft.VisualStudio.Component.VC.ClangC2
- Microsoft.Component.MSBuild
- Microsoft.VisualStudio.Component.Roslyn.Compiler
- Microsoft.VisualStudio.Component.TextTemplating
- Microsoft.VisualStudio.Component.VC.CoreIde
- Microsoft.VisualStudio.Component.VC.Redist.14.Latest
- Microsoft.VisualStudio.ComponentGroup.NativeDesktop.Core
- Microsoft.VisualStudio.Component.Debugger.JustInTime
- Microsoft.VisualStudio.Component.NuGet
- Microsoft.VisualStudio.Component.Static.Analysis.Tools
- Microsoft.VisualStudio.Component.VC.ATL
- Microsoft.VisualStudio.Component.VC.ATLMFC
- Microsoft.VisualStudio.Component.VC.CMake.Project
- Microsoft.VisualStudio.Component.VC.DiagnosticTools
- Microsoft.VisualStudio.Component.VC.TestAdapterForBoostTest
- Microsoft.VisualStudio.Component.VC.TestAdapterForGoogleTest
- Microsoft.VisualStudio.Component.VC.Tools.x86.x64
+packageParameters="--add Microsoft.VisualStudio.Workload.NativeDesktop
+ --add Microsoft.VisualStudio.Component.VC.ClangC2
+ --add Microsoft.Component.MSBuild
+ --add Microsoft.VisualStudio.Component.Roslyn.Compiler
+ --add Microsoft.VisualStudio.Component.TextTemplating
+ --add Microsoft.VisualStudio.Component.VC.CoreIde
+ --add Microsoft.VisualStudio.Component.VC.Redist.14.Latest
+ --add Microsoft.VisualStudio.ComponentGroup.NativeDesktop.Core
+ --add Microsoft.VisualStudio.Component.Debugger.JustInTime
+ --add Microsoft.VisualStudio.Component.NuGet
+ --add Microsoft.VisualStudio.Component.Static.Analysis.Tools
+ --add Microsoft.VisualStudio.Component.VC.ATL
+ --add Microsoft.VisualStudio.Component.VC.ATLMFC
+ --add Microsoft.VisualStudio.Component.VC.CMake.Project
+ --add Microsoft.VisualStudio.Component.VC.DiagnosticTools
+ --add Microsoft.VisualStudio.Component.VC.TestAdapterForBoostTest
+ --add Microsoft.VisualStudio.Component.VC.TestAdapterForGoogleTest
+ --add Microsoft.VisualStudio.Component.VC.Tools.x86.x64
 " />
 
 <package id="windows-sdk-10.1" version="$win10sdkVersion" />
@@ -219,24 +222,24 @@ $packageConfig = @"
 <!-- <package id="visualstudio2017community" version="$vsVersion" /> -->
 
 <package id="visualstudio2017-workload-nativedesktop" version="$vsWorkloadNativedesktopVersion" 
-packageParameters="--no-includeRecommended --no-includeOptional --add Microsoft.VisualStudio.Workload.NativeDesktop
- Microsoft.VisualStudio.Component.VC.ClangC2
- Microsoft.Component.MSBuild
- Microsoft.VisualStudio.Component.Roslyn.Compiler
- Microsoft.VisualStudio.Component.TextTemplating
- Microsoft.VisualStudio.Component.VC.CoreIde
- Microsoft.VisualStudio.Component.VC.Redist.14.Latest
- Microsoft.VisualStudio.ComponentGroup.NativeDesktop.Core
- Microsoft.VisualStudio.Component.Debugger.JustInTime
- Microsoft.VisualStudio.Component.NuGet
- Microsoft.VisualStudio.Component.Static.Analysis.Tools
- Microsoft.VisualStudio.Component.VC.ATL
- Microsoft.VisualStudio.Component.VC.ATLMFC
- Microsoft.VisualStudio.Component.VC.CMake.Project
- Microsoft.VisualStudio.Component.VC.DiagnosticTools
- Microsoft.VisualStudio.Component.VC.TestAdapterForBoostTest
- Microsoft.VisualStudio.Component.VC.TestAdapterForGoogleTest
- Microsoft.VisualStudio.Component.VC.Tools.x86.x64
+packageParameters="--add Microsoft.VisualStudio.Workload.NativeDesktop
+ --add Microsoft.VisualStudio.Component.VC.ClangC2
+ --add Microsoft.Component.MSBuild
+ --add Microsoft.VisualStudio.Component.Roslyn.Compiler
+ --add Microsoft.VisualStudio.Component.TextTemplating
+ --add Microsoft.VisualStudio.Component.VC.CoreIde
+ --add Microsoft.VisualStudio.Component.VC.Redist.14.Latest
+ --add Microsoft.VisualStudio.ComponentGroup.NativeDesktop.Core
+ --add Microsoft.VisualStudio.Component.Debugger.JustInTime
+ --add Microsoft.VisualStudio.Component.NuGet
+ --add Microsoft.VisualStudio.Component.Static.Analysis.Tools
+ --add Microsoft.VisualStudio.Component.VC.ATL
+ --add Microsoft.VisualStudio.Component.VC.ATLMFC
+ --add Microsoft.VisualStudio.Component.VC.CMake.Project
+ --add Microsoft.VisualStudio.Component.VC.DiagnosticTools
+ --add Microsoft.VisualStudio.Component.VC.TestAdapterForBoostTest
+ --add Microsoft.VisualStudio.Component.VC.TestAdapterForGoogleTest
+ --add Microsoft.VisualStudio.Component.VC.Tools.x86.x64
 " />
 
 <package id="windows-sdk-10.1" version="$win10sdkVersion" />
@@ -379,6 +382,13 @@ function NugetInstall {
 	ReturnCodeCheck "nuget_install" $? $LastExitCode
 }
 
+function WinDefenderAvDisable {
+	Set-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender' -name "DisableAntiSpyware" -Value 1 -Type DWord -force
+	Set-ItemProperty -Path 'HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows Defender\Real-Time Protection' -name "DisableBehaviorMonitoring" -Value 1 -Type DWord -force
+	Set-ItemProperty -Path 'HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows Defender\Real-Time Protection' -name "DisableOnAccessProtection" -Value 1 -Type DWord -force
+	Set-ItemProperty -Path 'HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows Defender\Real-Time Protection' -name "DisableScanOnRealtimeEnable" -Value 1 -Type DWord -force
+}
+
 function OsPrepForAzure {
 
 	### OS preparation follows...
@@ -497,14 +507,25 @@ function AzureVmAgentInstall {
 	StartProcess "azureAgent_install" "msiexec" "/q /i $azureAgentMsi"
 }
 
+function VstsAgentAdminGroupAdd {
+	# Required to fix Wix ICE validation failures: LGHT0217: Error executing ICE action 'ICE01'. The most common cause of this kind of ICE failure is an incorrectly registered scripting engine
+	StartProcess "vstsAgent_config_netadmin" "net" 'localgroup  Administrators "NT Authority\Network Service" /add'
+}
+
 function VstsAgentConfig {
 	echo "INFO: Configure VSTS Agent url/pool/agent: $vstsAgentUrl - $vstsPool - $vstsAgentName"
 	StartProcess "vstsAgent_config" "c:\agent\config.cmd" "--unattended --url $vstsAgentUrl --auth pat --token $vstsPatToken --pool $vstsPool --agent $vstsAgentName --work c:\agent\_work --runAsService --acceptTeeEula --deploymentGroupTags win10,client"
+	VstsAgentAdminGroupAdd
 }
 
 function VstsAgentRemove {
 	echo "INFO: Remove VSTS Agent url/pool/agent: $vstsAgentUrl - $vstsPool - $vstsAgentName"
 	StartProcess "vstsAgent_remove" "c:\agent\config.cmd" "remove --unattended --auth	pat --token $vstsPatToken"
+}
+
+function WindowsUpdateDisable {
+	echo "INFO: Disable Windows updates"
+	Set-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU' -name "NoAutoUpdate" -Value 1 -Type DWord -force
 }
 
 function WindowsUpdatesInstall {
@@ -593,6 +614,8 @@ switch ($action)
 				WinSvcsDisable
 				WinDebloatApps
 				WinDebloatSysPrep
+				WinDefenderAvDisable
+				WindowsUpdateDisable
 				NugetInstall
 				OsPrepForAzure
 				AzureVmAgentInstall
