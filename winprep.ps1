@@ -30,7 +30,7 @@ $llvmVersion = "7.0.0"								# Not actively used by us. https://chocolatey.org/
 $azurePipelinesAgentVersion = "2.142.1"		# https://chocolatey.org/packages/azure-pipelines-agent
 $win10sdkVersion = "10.1.17763.1"				# https://chocolatey.org/packages/windows-sdk-10.1
 
-$conanVersion = "1_12_0"							# https://conan.io/downloads.html
+$conanVersion = "1_20_4"							# https://conan.io/downloads.html
 
 # Others:
 $conanInstallUri = "https://dl.bintray.com/conan/installers/conan-win-64_$conanVersion.exe"
