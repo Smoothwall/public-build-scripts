@@ -4,8 +4,8 @@
 # Tested on MacOS Mojave
 #
 
-### Amend the variables below first, then run from an admin cmd.exe: sudo ~/macprep.sh -action [ACTION]
-## To monitor: tail -f ~/macprep.log
+### Amend the variables below first, then run from a terminal: ~/macprep.sh -Action=ACTION
+## WARNING: DO NOT RUN "build_local_install" ACTION AS ROOT OR SUDO.
 ###
 vstsPatToken=""
 vstsPool="MacOS-Clients"
@@ -99,6 +99,18 @@ function BrewInstall {
 	ReturnCodeCheck "brew_update" $?
 }
 
+function PythonInstall {
+    echo "INFO: Install Python 3 using homebrew"
+
+    brew update
+    brew install python
+    ReturnCodeCheck "python_install" $?
+
+    echo "INFO: Checking that Python command works..."
+    python3 --version
+    ReturnCodeCheck "python_check" $?
+}
+
 function BrewAddBashPath {
 	 pkgName="$1"
 	 
@@ -106,13 +118,13 @@ function BrewAddBashPath {
 }
 
 function ConanInstall {
-	 echo "INFO: Install conan"
-	 brew update
-	 brew install conan
-	 ReturnCodeCheck "conan_install" $? 0
-	 
-	 BrewAddBashPath conan
-	 ReturnCodeCheck "conan_path_add" $?
+    echo "INFO: Install conan using pip"
+    pip3 install 'conan==1.21.1'
+    ReturnCodeCheck "conan_install" $?
+    
+    echo "INFO: Checking that Conan command works..."
+    conan --version
+    ReturnCodeCheck "conan_check" $?
 }
 
 function InstallVstsAgent {
@@ -210,8 +222,10 @@ function VstsAgentRemove {
 
 function Usage {
 	 echo "INFO: Amend the variables at the top of the script, then run from a terminal:" 
-	 echo "INFO:	sudo ~/macprep.sh -Action=ACTION"
+	 echo "INFO:	~/macprep.sh -Action=ACTION"
 	 echo "INFO: Where ACTION is one of: build_local_install|vsts_config|vsts_remove|invoke"
+     echo ""
+     echo "INFO: Do NOT run the build_local_install action as root/sudo!"
 }
 
 function LogSet {
@@ -274,6 +288,7 @@ case $action in
 				echo "INFO: Starting prep for local build system..."
 				InstallXcodeCmdTools
 				BrewInstall
+                PythonInstall
 				ConanInstall
 				InstallAppsBuildLocal
 				BashProfileSource
