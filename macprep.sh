@@ -224,8 +224,8 @@ function Usage {
 	 echo "INFO: Amend the variables at the top of the script, then run from a terminal:" 
 	 echo "INFO:	~/macprep.sh -Action=ACTION"
 	 echo "INFO: Where ACTION is one of: build_local_install|vsts_config|vsts_remove|invoke"
-     echo ""
-     echo "INFO: Do NOT run the build_local_install action as root/sudo!"
+	 echo ""
+	 echo "INFO: Do NOT run the build_local_install action as root/sudo!"
 }
 
 function LogSet {
@@ -288,7 +288,7 @@ case $action in
 				echo "INFO: Starting prep for local build system..."
 				InstallXcodeCmdTools
 				BrewInstall
-                PythonInstall
+				PythonInstall
 				ConanInstall
 				InstallAppsBuildLocal
 				BashProfileSource
@@ -298,6 +298,7 @@ case $action in
 	 #		((
 	 #			 echo "INFO: Starting prep for VSTS build host..."
 	 #			 BrewInstall
+	 #			 PythonInstall
 	 #			 ConanInstall
 	 #			 InstallAppsBuildVsts
 	 #			 OsPrepForAzure
