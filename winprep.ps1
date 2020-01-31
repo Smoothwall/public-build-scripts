@@ -577,8 +577,8 @@ switch ($action)
 				
 				VsCheckVersion $vsLocalType
 				
-                ChocoInstall
-                ConanInstall
+				ChocoInstall
+				ConanInstall
 				WindowsLongPathsEnable
 				ChocoInstallAppsBuildLocal
 				LlvmVsInstall $vsLocalType
@@ -597,8 +597,8 @@ switch ($action)
 				
 				TimeSync
 				
-                ChocoInstall
-                ConanInstall
+				ChocoInstall
+				ConanInstall
 				WindowsLongPathsEnable
 				DotNet35Install
 				ChocoInstallAppsBuildVsts
