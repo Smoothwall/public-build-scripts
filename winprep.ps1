@@ -4,7 +4,7 @@ param (
 	[Parameter(Mandatory=$false)][string]$funcArgs
 )
 
-$scriptVersion = "1.0.3"
+$scriptVersion = "1.1.0"
 #
 # Windows 10 preparation script for Windows VSTS local and self-hosted build environment setup.
 # Tested on Windows 10 Pro N: Version 1803 (OS Build 17134.1) and Windows Server 2016
@@ -29,11 +29,11 @@ $cmakeVersion = "3.14.5"							# https://chocolatey.org/packages/cmake
 $llvmVersion = "7.0.0"								# Not actively used by us. https://chocolatey.org/packages/llvm
 $azurePipelinesAgentVersion = "2.142.1"		# https://chocolatey.org/packages/azure-pipelines-agent
 $win10sdkVersion = "10.1.17763.1"				# https://chocolatey.org/packages/windows-sdk-10.1
+$pythonVersion = "3.7.6"                          # https://chocolatey.org/packages/Python
 
-$conanVersion = "1_20_4"							# https://conan.io/downloads.html
+$conanVersion = "1.21.1"                          # https://pypi.org/project/conan/
 
 # Others:
-$conanInstallUri = "https://dl.bintray.com/conan/installers/conan-win-64_$conanVersion.exe"
 $vsLlvmUrl = "https://llvmextensions.gallerycdn.vsassets.io/extensions/llvmextensions/llvm-toolchain/1.0.340780/1535663999089/llvm.vsix" # We dont currently use LLVM. https://marketplace.visualstudio.com/items?itemName=LLVMExtensions.llvm-toolchain 
 $vsClangPowerToolsUrl = "https://marketplace.visualstudio.com/_apis/public/gallery/publishers/caphyon/vsextensions/ClangPowerTools/4.10.5/vspackage"
 $azureAgentUri = "https://go.microsoft.com/fwlink/?LinkID=394789" # This always pulls the latest, see: https://docs.microsoft.com/en-us/azure/virtual-machines/extensions/agent-windows
@@ -137,15 +137,8 @@ function DownloadUri {
 }
 
 function ConanInstall {
-	$conanInstaller = "$Env:TEMP\conanInstaller.exe";
-
-	# Fix powershell stupidity: https://stackoverflow.com/a/39736671 i.e problems downloading from certain URIs
-	[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-
-	DownloadUri "conan_download" "$conanInstallUri" "$conanInstaller"
-
 	echo "INFO: Install conan: $conanInstaller"
-	StartProcess "conan_install" "$conanInstaller" "/SILENT"
+	StartProcess "conan_install" "pip3" "install conan==$conanVersion"
 }
 
 function WindowsLongPathsEnable {
@@ -194,6 +187,7 @@ packageParameters="--add Microsoft.VisualStudio.Workload.NativeDesktop
 <package id="cmake" version="$cmakeVersion" installArguments="ADD_CMAKE_TO_PATH=System" />
 <package id="git.install" />
 <package id="wixtoolset" />
+<package id="python" version="$pythonVersion" />
 
 <package id="azure-pipelines-agent" version="$azurePipelinesAgentVersion" />
 
@@ -247,6 +241,7 @@ packageParameters="--add Microsoft.VisualStudio.Workload.NativeDesktop
 <package id="cmake" version="$cmakeVersion" installArguments="ADD_CMAKE_TO_PATH=System" />
 <package id="git.install" />
 <package id="wixtoolset" />
+<package id="python" version="$pythonVersion" />
 
 <package id="sysinternals" /> <!-- v.useful debug tools -->
 <package id="conemu" /> <!-- Enhanced cmd.exe CLI -->
